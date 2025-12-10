@@ -82,11 +82,17 @@ class LighttherapyCard extends HTMLElement {
       // Update display with active scheme
       const activeDiv = this.shadowRoot.querySelector('.active-scheme');
       if (activeDiv && data.mood && data.scheme) {
+        const escapedMood = this._escapeHtml(data.mood);
+        const escapedScheme = this._escapeHtml(data.scheme);
+        const validColors = (data.colors || []).map(color => 
+          this._isValidHexColor(color) ? color : '#CCCCCC'
+        );
+        
         activeDiv.innerHTML = `
           <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
-            <strong>Active:</strong> ${data.mood} - ${data.scheme}
+            <strong>Active:</strong> ${escapedMood} - ${escapedScheme}
             <div style="display: flex; gap: 5px; margin-top: 5px;">
-              ${data.colors.map(color => `
+              ${validColors.map(color => `
                 <div style="width: 40px; height: 40px; background: ${color}; border: 1px solid #ccc;"></div>
               `).join('')}
             </div>
@@ -96,6 +102,92 @@ class LighttherapyCard extends HTMLElement {
     } catch (error) {
       console.error('Error loading active scheme:', error);
     }
+  }
+
+  /**
+   * HTML-escape a string to prevent XSS
+   * @param {string} str - String to escape
+   * @returns {string} Escaped string
+   */
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  /**
+   * Validates that a string is a valid hexadecimal color
+   * @param {string} color - Color string to validate (e.g., "#FF0000")
+   * @returns {boolean} True if valid hex color, false otherwise
+   */
+  _isValidHexColor(color) {
+    return /^#[0-9A-Fa-f]{6}$/.test(color);
+  }
+
+  /**
+   * Creates an SVG bulb icon with the specified color
+   * @param {string} color - Hex color string (e.g., "#FF0000")
+   * @returns {string} SVG markup for the bulb icon
+   */
+  _createBulbIcon(color) {
+    // Validate color to prevent XSS
+    if (!this._isValidHexColor(color)) {
+      console.warn('Invalid color format:', color);
+      color = '#CCCCCC'; // Fallback to gray
+    }
+    
+    const sanitizedColor = color.replace('#', '');
+    const darkenedColor = this._darkenColor(color, 20);
+    // Create unique ID for each bulb instance to avoid duplicate IDs
+    const uniqueId = `bulb-gradient-${sanitizedColor}-${Math.random().toString(36).substring(2, 11)}`;
+    
+    return `
+      <svg class="bulb-icon" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="${uniqueId}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${darkenedColor};stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <!-- Bulb glass -->
+        <ellipse cx="12" cy="10" rx="8" ry="10" fill="url(#${uniqueId})" stroke="#333" stroke-width="0.5" opacity="0.9"/>
+        <!-- Bulb base -->
+        <rect x="9" y="19" width="6" height="3" fill="#888" stroke="#333" stroke-width="0.5"/>
+        <rect x="8.5" y="22" width="7" height="2" fill="#777" stroke="#333" stroke-width="0.5"/>
+        <rect x="9" y="24" width="6" height="2" fill="#666" stroke="#333" stroke-width="0.5"/>
+        <!-- Shine effect -->
+        <ellipse cx="9" cy="8" rx="2.5" ry="3" fill="white" opacity="0.4"/>
+      </svg>
+    `;
+  }
+
+  /**
+   * Darkens a hex color by a given percentage
+   * @param {string} color - Hex color string (e.g., "#FF0000")
+   * @param {number} percent - Percentage to darken (0-100)
+   * @returns {string} Darkened hex color string
+   */
+  _darkenColor(color, percent) {
+    // Validate color format
+    if (!this._isValidHexColor(color)) {
+      console.warn('Invalid color format for darkening:', color);
+      return '#000000';
+    }
+    
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) - amt;
+    const G = (num >> 8 & 0x00FF) - amt;
+    const B = (num & 0x0000FF) - amt;
+    
+    // Clamp values to 0-255 range
+    const clampedR = R < 0 ? 0 : R;
+    const clampedG = G < 0 ? 0 : G;
+    const clampedB = B < 0 ? 0 : B;
+    
+    // Combine RGB components into a single hex value
+    const resultNum = (clampedR << 16) | (clampedG << 8) | clampedB;
+    return '#' + resultNum.toString(16).padStart(6, '0');
   }
 
   _render() {
@@ -134,6 +226,44 @@ class LighttherapyCard extends HTMLElement {
         button:disabled {
           background: #ccc;
           cursor: not-allowed;
+        }
+        .mood-preview {
+          margin: 16px 0;
+          padding: 12px;
+          background: #f9f9f9;
+          border-radius: 8px;
+          border: 1px solid #e0e0e0;
+        }
+        .mood-preview-title {
+          font-size: 0.9em;
+          font-weight: bold;
+          margin-bottom: 12px;
+          color: #666;
+        }
+        .mood-preview-schemes {
+          display: flex;
+          gap: 16px;
+          justify-content: space-around;
+          flex-wrap: wrap;
+        }
+        .mood-preview-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+        .bulb-container {
+          display: flex;
+          gap: 4px;
+        }
+        .bulb-icon {
+          width: 32px;
+          height: 48px;
+        }
+        .scheme-name {
+          font-size: 0.8em;
+          text-align: center;
+          color: #555;
         }
         .scheme-list {
           margin-top: 10px;
@@ -174,25 +304,45 @@ class LighttherapyCard extends HTMLElement {
           <option value="">-- Choose a mood --</option>
           ${this._moods.map(mood => `
             <option value="${mood}" ${mood === this._selectedMood ? 'selected' : ''}>
-              ${mood}
+              ${this._escapeHtml(mood)}
             </option>
           `).join('')}
         </select>
         
         ${this._schemes.length > 0 ? `
+          <div class="mood-preview">
+            <div class="mood-preview-title">Color Schemes for ${this._escapeHtml(this._selectedMood)}</div>
+            <div class="mood-preview-schemes">
+              ${this._schemes.map(scheme => `
+                <div class="mood-preview-item">
+                  <div class="bulb-container">
+                    ${scheme.colors.map(color => this._createBulbIcon(color)).join('')}
+                  </div>
+                  <div class="scheme-name">${this._escapeHtml(scheme.name)}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          
           <div class="scheme-list">
             <label>Select Scheme:</label>
-            ${this._schemes.map((scheme, idx) => `
-              <div class="scheme-item ${scheme.name === this._selectedScheme ? 'selected' : ''}" 
+            ${this._schemes.map((scheme, idx) => {
+              const escapedName = this._escapeHtml(scheme.name);
+              const isSelected = scheme.name === this._selectedScheme;
+              return `
+              <div class="scheme-item ${isSelected ? 'selected' : ''}" 
                    data-scheme="${scheme.name}">
-                <span>${scheme.name}</span>
+                <span>${escapedName}</span>
                 <div class="color-preview">
-                  ${scheme.colors.map(color => `
-                    <div class="color-box" style="background: ${color};"></div>
-                  `).join('')}
+                  ${scheme.colors.map(color => {
+                    // Validate color before using in CSS
+                    const safeColor = this._isValidHexColor(color) ? color : '#CCCCCC';
+                    return `<div class="color-box" style="background: ${safeColor};"></div>`;
+                  }).join('')}
                 </div>
               </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         ` : ''}
         
