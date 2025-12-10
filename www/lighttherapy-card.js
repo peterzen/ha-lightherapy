@@ -82,11 +82,17 @@ class LighttherapyCard extends HTMLElement {
       // Update display with active scheme
       const activeDiv = this.shadowRoot.querySelector('.active-scheme');
       if (activeDiv && data.mood && data.scheme) {
+        const escapedMood = this._escapeHtml(data.mood);
+        const escapedScheme = this._escapeHtml(data.scheme);
+        const validColors = (data.colors || []).map(color => 
+          this._isValidHexColor(color) ? color : '#CCCCCC'
+        );
+        
         activeDiv.innerHTML = `
           <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
-            <strong>Active:</strong> ${data.mood} - ${data.scheme}
+            <strong>Active:</strong> ${escapedMood} - ${escapedScheme}
             <div style="display: flex; gap: 5px; margin-top: 5px;">
-              ${data.colors.map(color => `
+              ${validColors.map(color => `
                 <div style="width: 40px; height: 40px; background: ${color}; border: 1px solid #ccc;"></div>
               `).join('')}
             </div>
