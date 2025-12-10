@@ -4,7 +4,7 @@ This repository contains a Home Assistant custom integration for light therapy.
 
 ## Project Overview
 
-This is a Home Assistant custom integration that provides light therapy functionality. The integration is designed to help users manage and automate light therapy sessions for health and wellness purposes.
+This is a Home Assistant custom integration that controls the mood in the room by controlling the lights with color schemes.
 
 ## Development Guidelines
 
