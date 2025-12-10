@@ -193,12 +193,16 @@ curl http://homeassistant.local:8269/active
 ha-lighttherapy/
 ├── config.yaml              # Add-on configuration
 ├── Dockerfile               # Container build instructions
-├── run.sh                   # Startup script
 ├── data/
 │   └── schemes.json         # Hardcoded mood/scheme data
 └── rootfs/
-    └── usr/bin/
-        └── lighttherapy-server  # Python HTTP server
+    ├── etc/
+    │   └── services.d/
+    │       └── lighttherapy/
+    │           └── run       # s6-overlay service script
+    └── usr/
+        └── bin/
+            └── lighttherapy-server  # Python HTTP server
 ```
 
 ## Limitations (PoC)
