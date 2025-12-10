@@ -11,8 +11,20 @@ from urllib.parse import urlparse, parse_qs
 
 # Load schemes data
 SCHEMES_FILE = '/data/schemes.json'
-with open(SCHEMES_FILE, 'r') as f:
-    SCHEMES_DATA = json.load(f)
+try:
+    with open(SCHEMES_FILE, 'r') as f:
+        SCHEMES_DATA = json.load(f)
+    print(f"Loaded {len(SCHEMES_DATA.get('moods', {}))} moods from {SCHEMES_FILE}")
+except FileNotFoundError:
+    print(f"ERROR: Schemes file not found at {SCHEMES_FILE}")
+    print("Please ensure the add-on is properly installed with data/schemes.json")
+    exit(1)
+except json.JSONDecodeError as e:
+    print(f"ERROR: Invalid JSON in {SCHEMES_FILE}: {e}")
+    exit(1)
+except Exception as e:
+    print(f"ERROR: Failed to load schemes: {e}")
+    exit(1)
 
 # Store current selection in memory
 CURRENT_SELECTION = {
@@ -110,9 +122,15 @@ class LighttherapyHandler(BaseHTTPRequestHandler):
                     "active": CURRENT_SELECTION
                 }).encode())
                 
-            except Exception as e:
+            except json.JSONDecodeError:
                 self._set_headers(400)
-                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                self.wfile.write(json.dumps({"error": "Invalid JSON in request body"}).encode())
+            except KeyError:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": "Missing required field: mood or scheme"}).encode())
+            except Exception:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": "Internal server error"}).encode())
             return
         
         # Default 404
