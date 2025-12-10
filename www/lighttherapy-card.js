@@ -303,7 +303,7 @@ class LighttherapyCard extends HTMLElement {
         <select id="mood-select">
           <option value="">-- Choose a mood --</option>
           ${this._moods.map(mood => `
-            <option value="${this._escapeHtml(mood)}" ${mood === this._selectedMood ? 'selected' : ''}>
+            <option value="${mood}" ${mood === this._selectedMood ? 'selected' : ''}>
               ${this._escapeHtml(mood)}
             </option>
           `).join('')}
@@ -331,7 +331,7 @@ class LighttherapyCard extends HTMLElement {
               const isSelected = scheme.name === this._selectedScheme;
               return `
               <div class="scheme-item ${isSelected ? 'selected' : ''}" 
-                   data-scheme="${escapedName}">
+                   data-scheme="${scheme.name}">
                 <span>${escapedName}</span>
                 <div class="color-preview">
                   ${scheme.colors.map(color => {
