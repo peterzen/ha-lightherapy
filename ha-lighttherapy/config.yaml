@@ -1,0 +1,13 @@
+name: "Lighttherapy PoC"
+slug: "ha_lighttherapy"
+description: "Minimal color-mood selection API"
+version: "0.0.1"
+arch:
+  - amd64
+  - aarch64
+ports:
+  8269/tcp: 8269
+startup: application
+boot: auto
+options: {}
+schema: {}

@@ -1,0 +1,19 @@
+{
+  "moods": {
+    "Relax": [
+      { "name": "Sunset Soft", "colors": ["#FFB199", "#FF8C66", "#CC6E4A"] },
+      { "name": "Warm Fade",   "colors": ["#FFCC99", "#FFB266", "#E6994D"] },
+      { "name": "Candle Glow", "colors": ["#FFDFB3", "#FFCC80", "#E6B873"] }
+    ],
+    "Focus": [
+      { "name": "Cool Mint",   "colors": ["#A6FFF2", "#66FFE5", "#33CCB8"] },
+      { "name": "Aqua Edge",   "colors": ["#99E6FF", "#66CCFF", "#3399CC"] },
+      { "name": "Blue Steel",  "colors": ["#99B3FF", "#668CFF", "#335FCC"] }
+    ],
+    "Energy": [
+      { "name": "Citrus Pop",  "colors": ["#FFEE99", "#FFDD55", "#FFCC00"] },
+      { "name": "Vivid Trio",  "colors": ["#FF6666", "#FF3333", "#CC0000"] },
+      { "name": "Tropical",    "colors": ["#FF99CC", "#FF6699", "#FF3366"] }
+    ]
+  }
+}

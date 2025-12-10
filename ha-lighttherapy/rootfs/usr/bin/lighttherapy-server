@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""
+Lighttherapy PoC HTTP Server
+Provides API for mood/scheme selection
+"""
+
+import json
+import os
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+
+# Load schemes data
+SCHEMES_FILE = '/data/schemes.json'
+try:
+    with open(SCHEMES_FILE, 'r') as f:
+        SCHEMES_DATA = json.load(f)
+    print(f"Loaded {len(SCHEMES_DATA.get('moods', {}))} moods from {SCHEMES_FILE}")
+except FileNotFoundError:
+    print(f"ERROR: Schemes file not found at {SCHEMES_FILE}")
+    print("Please ensure the add-on is properly installed with data/schemes.json")
+    exit(1)
+except json.JSONDecodeError as e:
+    print(f"ERROR: Invalid JSON in {SCHEMES_FILE}: {e}")
+    exit(1)
+except Exception as e:
+    print(f"ERROR: Failed to load schemes: {e}")
+    exit(1)
+
+# Store current selection in memory
+CURRENT_SELECTION = {
+    "mood": None,
+    "scheme": None,
+    "colors": []
+}
+
+class LighttherapyHandler(BaseHTTPRequestHandler):
+    def _set_headers(self, status=200):
+        self.send_response(status)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def do_OPTIONS(self):
+        self._set_headers()
+
+    def do_GET(self):
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        
+        # GET /moods - return list of mood names
+        if path == '/moods':
+            self._set_headers()
+            moods = list(SCHEMES_DATA['moods'].keys())
+            self.wfile.write(json.dumps({"moods": moods}).encode())
+            return
+        
+        # GET /moods/<name> - return schemes for that mood
+        if path.startswith('/moods/'):
+            mood_name = path.split('/moods/')[1]
+            if mood_name in SCHEMES_DATA['moods']:
+                self._set_headers()
+                schemes = SCHEMES_DATA['moods'][mood_name]
+                self.wfile.write(json.dumps({"mood": mood_name, "schemes": schemes}).encode())
+            else:
+                self._set_headers(404)
+                self.wfile.write(json.dumps({"error": "Mood not found"}).encode())
+            return
+        
+        # GET /active - return currently active selection
+        if path == '/active':
+            self._set_headers()
+            self.wfile.write(json.dumps(CURRENT_SELECTION).encode())
+            return
+        
+        # Default 404
+        self._set_headers(404)
+        self.wfile.write(json.dumps({"error": "Not found"}).encode())
+
+    def do_POST(self):
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        
+        # POST /select - set current selection
+        if path == '/select':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            
+            try:
+                data = json.loads(body.decode())
+                mood = data.get('mood')
+                scheme_name = data.get('scheme')
+                
+                # Validate mood exists
+                if mood not in SCHEMES_DATA['moods']:
+                    self._set_headers(400)
+                    self.wfile.write(json.dumps({"error": "Invalid mood"}).encode())
+                    return
+                
+                # Find scheme in mood
+                schemes = SCHEMES_DATA['moods'][mood]
+                selected_scheme = None
+                for s in schemes:
+                    if s['name'] == scheme_name:
+                        selected_scheme = s
+                        break
+                
+                if not selected_scheme:
+                    self._set_headers(400)
+                    self.wfile.write(json.dumps({"error": "Invalid scheme"}).encode())
+                    return
+                
+                # Update current selection
+                CURRENT_SELECTION['mood'] = mood
+                CURRENT_SELECTION['scheme'] = scheme_name
+                CURRENT_SELECTION['colors'] = selected_scheme['colors']
+                
+                self._set_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "active": CURRENT_SELECTION
+                }).encode())
+                
+            except json.JSONDecodeError:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": "Invalid JSON in request body"}).encode())
+            except KeyError:
+                self._set_headers(400)
+                self.wfile.write(json.dumps({"error": "Missing required field: mood or scheme"}).encode())
+            except Exception:
+                self._set_headers(500)
+                self.wfile.write(json.dumps({"error": "Internal server error"}).encode())
+            return
+        
+        # Default 404
+        self._set_headers(404)
+        self.wfile.write(json.dumps({"error": "Not found"}).encode())
+
+    def log_message(self, format, *args):
+        """Override to provide custom logging"""
+        print(f"[{self.log_date_time_string()}] {format % args}")
+
+def run_server(port=8269):
+    server_address = ('', port)
+    httpd = HTTPServer(server_address, LighttherapyHandler)
+    print(f'Starting Lighttherapy server on port {port}...')
+    httpd.serve_forever()
+
+if __name__ == '__main__':
+    run_server()
