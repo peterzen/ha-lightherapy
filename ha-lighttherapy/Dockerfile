@@ -10,9 +10,3 @@ COPY rootfs /
 
 # Make server executable
 RUN chmod a+x /usr/bin/lighttherapy-server
-
-# Run script
-COPY run.sh /
-RUN chmod a+x /run.sh
-
-CMD [ "/run.sh" ]
