@@ -297,8 +297,8 @@ class LighttherapyCard extends HTMLElement {
         <select id="mood-select">
           <option value="">-- Choose a mood --</option>
           ${this._moods.map(mood => `
-            <option value="${mood}" ${mood === this._selectedMood ? 'selected' : ''}>
-              ${mood}
+            <option value="${this._escapeHtml(mood)}" ${mood === this._selectedMood ? 'selected' : ''}>
+              ${this._escapeHtml(mood)}
             </option>
           `).join('')}
         </select>
@@ -320,17 +320,23 @@ class LighttherapyCard extends HTMLElement {
           
           <div class="scheme-list">
             <label>Select Scheme:</label>
-            ${this._schemes.map((scheme, idx) => `
-              <div class="scheme-item ${scheme.name === this._selectedScheme ? 'selected' : ''}" 
-                   data-scheme="${this._escapeHtml(scheme.name)}">
-                <span>${this._escapeHtml(scheme.name)}</span>
+            ${this._schemes.map((scheme, idx) => {
+              const escapedName = this._escapeHtml(scheme.name);
+              const isSelected = scheme.name === this._selectedScheme;
+              return `
+              <div class="scheme-item ${isSelected ? 'selected' : ''}" 
+                   data-scheme="${escapedName}">
+                <span>${escapedName}</span>
                 <div class="color-preview">
-                  ${scheme.colors.map(color => `
-                    <div class="color-box" style="background: ${color};"></div>
-                  `).join('')}
+                  ${scheme.colors.map(color => {
+                    // Validate color before using in CSS
+                    const safeColor = this._isValidHexColor(color) ? color : '#CCCCCC';
+                    return `<div class="color-box" style="background: ${safeColor};"></div>`;
+                  }).join('')}
                 </div>
               </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         ` : ''}
         
