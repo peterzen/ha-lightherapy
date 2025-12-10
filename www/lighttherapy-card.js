@@ -98,6 +98,37 @@ class LighttherapyCard extends HTMLElement {
     }
   }
 
+  _createBulbIcon(color) {
+    return `
+      <svg class="bulb-icon" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bulb-gradient-${color.replace('#', '')}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${this._darkenColor(color, 20)};stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <!-- Bulb glass -->
+        <ellipse cx="12" cy="10" rx="8" ry="10" fill="url(#bulb-gradient-${color.replace('#', '')})" stroke="#333" stroke-width="0.5" opacity="0.9"/>
+        <!-- Bulb base -->
+        <rect x="9" y="19" width="6" height="3" fill="#888" stroke="#333" stroke-width="0.5"/>
+        <rect x="8.5" y="22" width="7" height="2" fill="#777" stroke="#333" stroke-width="0.5"/>
+        <rect x="9" y="24" width="6" height="2" fill="#666" stroke="#333" stroke-width="0.5"/>
+        <!-- Shine effect -->
+        <ellipse cx="9" cy="8" rx="2.5" ry="3" fill="white" opacity="0.4"/>
+      </svg>
+    `;
+  }
+
+  _darkenColor(color, percent) {
+    // Simple color darkening function
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) - amt;
+    const G = (num >> 8 & 0x00FF) - amt;
+    const B = (num & 0x0000FF) - amt;
+    return '#' + (0x1000000 + (R < 0 ? 0 : R) * 0x10000 + (G < 0 ? 0 : G) * 0x100 + (B < 0 ? 0 : B)).toString(16).slice(1);
+  }
+
   _render() {
     const title = this._config.title || 'Lighttherapy PoC';
     
@@ -134,6 +165,44 @@ class LighttherapyCard extends HTMLElement {
         button:disabled {
           background: #ccc;
           cursor: not-allowed;
+        }
+        .mood-preview {
+          margin: 16px 0;
+          padding: 12px;
+          background: #f9f9f9;
+          border-radius: 8px;
+          border: 1px solid #e0e0e0;
+        }
+        .mood-preview-title {
+          font-size: 0.9em;
+          font-weight: bold;
+          margin-bottom: 12px;
+          color: #666;
+        }
+        .mood-preview-schemes {
+          display: flex;
+          gap: 16px;
+          justify-content: space-around;
+          flex-wrap: wrap;
+        }
+        .mood-preview-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+        .bulb-container {
+          display: flex;
+          gap: 4px;
+        }
+        .bulb-icon {
+          width: 32px;
+          height: 48px;
+        }
+        .scheme-name {
+          font-size: 0.8em;
+          text-align: center;
+          color: #555;
         }
         .scheme-list {
           margin-top: 10px;
@@ -180,6 +249,20 @@ class LighttherapyCard extends HTMLElement {
         </select>
         
         ${this._schemes.length > 0 ? `
+          <div class="mood-preview">
+            <div class="mood-preview-title">Color Schemes for ${this._selectedMood}</div>
+            <div class="mood-preview-schemes">
+              ${this._schemes.map(scheme => `
+                <div class="mood-preview-item">
+                  <div class="bulb-container">
+                    ${scheme.colors.map(color => this._createBulbIcon(color)).join('')}
+                  </div>
+                  <div class="scheme-name">${scheme.name}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          
           <div class="scheme-list">
             <label>Select Scheme:</label>
             ${this._schemes.map((scheme, idx) => `
