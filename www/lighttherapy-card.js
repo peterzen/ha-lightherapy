@@ -99,6 +99,17 @@ class LighttherapyCard extends HTMLElement {
   }
 
   /**
+   * HTML-escape a string to prevent XSS
+   * @param {string} str - String to escape
+   * @returns {string} Escaped string
+   */
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  /**
    * Validates that a string is a valid hexadecimal color
    * @param {string} color - Color string to validate (e.g., "#FF0000")
    * @returns {boolean} True if valid hex color, false otherwise
@@ -122,7 +133,7 @@ class LighttherapyCard extends HTMLElement {
     const sanitizedColor = color.replace('#', '');
     const darkenedColor = this._darkenColor(color, 20);
     // Create unique ID for each bulb instance to avoid duplicate IDs
-    const uniqueId = `bulb-gradient-${sanitizedColor}-${Math.random().toString(36).substr(2, 9)}`;
+    const uniqueId = `bulb-gradient-${sanitizedColor}-${Math.random().toString(36).substring(2, 11)}`;
     
     return `
       <svg class="bulb-icon" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
@@ -294,14 +305,14 @@ class LighttherapyCard extends HTMLElement {
         
         ${this._schemes.length > 0 ? `
           <div class="mood-preview">
-            <div class="mood-preview-title">Color Schemes for ${this._selectedMood}</div>
+            <div class="mood-preview-title">Color Schemes for ${this._escapeHtml(this._selectedMood)}</div>
             <div class="mood-preview-schemes">
               ${this._schemes.map(scheme => `
                 <div class="mood-preview-item">
                   <div class="bulb-container">
                     ${scheme.colors.map(color => this._createBulbIcon(color)).join('')}
                   </div>
-                  <div class="scheme-name">${scheme.name}</div>
+                  <div class="scheme-name">${this._escapeHtml(scheme.name)}</div>
                 </div>
               `).join('')}
             </div>
@@ -311,8 +322,8 @@ class LighttherapyCard extends HTMLElement {
             <label>Select Scheme:</label>
             ${this._schemes.map((scheme, idx) => `
               <div class="scheme-item ${scheme.name === this._selectedScheme ? 'selected' : ''}" 
-                   data-scheme="${scheme.name}">
-                <span>${scheme.name}</span>
+                   data-scheme="${this._escapeHtml(scheme.name)}">
+                <span>${this._escapeHtml(scheme.name)}</span>
                 <div class="color-preview">
                   ${scheme.colors.map(color => `
                     <div class="color-box" style="background: ${color};"></div>
