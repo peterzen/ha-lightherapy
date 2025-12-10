@@ -121,17 +121,19 @@ class LighttherapyCard extends HTMLElement {
     
     const sanitizedColor = color.replace('#', '');
     const darkenedColor = this._darkenColor(color, 20);
+    // Create unique ID for each bulb instance to avoid duplicate IDs
+    const uniqueId = `bulb-gradient-${sanitizedColor}-${Math.random().toString(36).substr(2, 9)}`;
     
     return `
       <svg class="bulb-icon" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="bulb-gradient-${sanitizedColor}" x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id="${uniqueId}" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
             <stop offset="100%" style="stop-color:${darkenedColor};stop-opacity:1" />
           </linearGradient>
         </defs>
         <!-- Bulb glass -->
-        <ellipse cx="12" cy="10" rx="8" ry="10" fill="url(#bulb-gradient-${sanitizedColor})" stroke="#333" stroke-width="0.5" opacity="0.9"/>
+        <ellipse cx="12" cy="10" rx="8" ry="10" fill="url(#${uniqueId})" stroke="#333" stroke-width="0.5" opacity="0.9"/>
         <!-- Bulb base -->
         <rect x="9" y="19" width="6" height="3" fill="#888" stroke="#333" stroke-width="0.5"/>
         <rect x="8.5" y="22" width="7" height="2" fill="#777" stroke="#333" stroke-width="0.5"/>
@@ -156,13 +158,6 @@ class LighttherapyCard extends HTMLElement {
     }
     
     const num = parseInt(color.replace('#', ''), 16);
-    
-    // Check for NaN from invalid hex
-    if (isNaN(num)) {
-      console.warn('Could not parse color:', color);
-      return '#000000';
-    }
-    
     const amt = Math.round(2.55 * percent);
     const R = (num >> 16) - amt;
     const G = (num >> 8 & 0x00FF) - amt;
@@ -173,8 +168,9 @@ class LighttherapyCard extends HTMLElement {
     const clampedG = G < 0 ? 0 : G;
     const clampedB = B < 0 ? 0 : B;
     
-    const resultNum = 0x1000000 + clampedR * 0x10000 + clampedG * 0x100 + clampedB;
-    return '#' + resultNum.toString(16).slice(1);
+    // Combine RGB components into a single hex value
+    const resultNum = (clampedR << 16) | (clampedG << 8) | clampedB;
+    return '#' + resultNum.toString(16).padStart(6, '0');
   }
 
   _render() {
