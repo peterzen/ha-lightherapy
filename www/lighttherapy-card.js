@@ -98,17 +98,40 @@ class LighttherapyCard extends HTMLElement {
     }
   }
 
+  /**
+   * Validates that a string is a valid hexadecimal color
+   * @param {string} color - Color string to validate (e.g., "#FF0000")
+   * @returns {boolean} True if valid hex color, false otherwise
+   */
+  _isValidHexColor(color) {
+    return /^#[0-9A-Fa-f]{6}$/.test(color);
+  }
+
+  /**
+   * Creates an SVG bulb icon with the specified color
+   * @param {string} color - Hex color string (e.g., "#FF0000")
+   * @returns {string} SVG markup for the bulb icon
+   */
   _createBulbIcon(color) {
+    // Validate color to prevent XSS
+    if (!this._isValidHexColor(color)) {
+      console.warn('Invalid color format:', color);
+      color = '#CCCCCC'; // Fallback to gray
+    }
+    
+    const sanitizedColor = color.replace('#', '');
+    const darkenedColor = this._darkenColor(color, 20);
+    
     return `
       <svg class="bulb-icon" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="bulb-gradient-${color.replace('#', '')}" x1="0%" y1="0%" x2="0%" y2="100%">
+          <linearGradient id="bulb-gradient-${sanitizedColor}" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
-            <stop offset="100%" style="stop-color:${this._darkenColor(color, 20)};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${darkenedColor};stop-opacity:1" />
           </linearGradient>
         </defs>
         <!-- Bulb glass -->
-        <ellipse cx="12" cy="10" rx="8" ry="10" fill="url(#bulb-gradient-${color.replace('#', '')})" stroke="#333" stroke-width="0.5" opacity="0.9"/>
+        <ellipse cx="12" cy="10" rx="8" ry="10" fill="url(#bulb-gradient-${sanitizedColor})" stroke="#333" stroke-width="0.5" opacity="0.9"/>
         <!-- Bulb base -->
         <rect x="9" y="19" width="6" height="3" fill="#888" stroke="#333" stroke-width="0.5"/>
         <rect x="8.5" y="22" width="7" height="2" fill="#777" stroke="#333" stroke-width="0.5"/>
@@ -119,14 +142,39 @@ class LighttherapyCard extends HTMLElement {
     `;
   }
 
+  /**
+   * Darkens a hex color by a given percentage
+   * @param {string} color - Hex color string (e.g., "#FF0000")
+   * @param {number} percent - Percentage to darken (0-100)
+   * @returns {string} Darkened hex color string
+   */
   _darkenColor(color, percent) {
-    // Simple color darkening function
+    // Validate color format
+    if (!this._isValidHexColor(color)) {
+      console.warn('Invalid color format for darkening:', color);
+      return '#000000';
+    }
+    
     const num = parseInt(color.replace('#', ''), 16);
+    
+    // Check for NaN from invalid hex
+    if (isNaN(num)) {
+      console.warn('Could not parse color:', color);
+      return '#000000';
+    }
+    
     const amt = Math.round(2.55 * percent);
     const R = (num >> 16) - amt;
     const G = (num >> 8 & 0x00FF) - amt;
     const B = (num & 0x0000FF) - amt;
-    return '#' + (0x1000000 + (R < 0 ? 0 : R) * 0x10000 + (G < 0 ? 0 : G) * 0x100 + (B < 0 ? 0 : B)).toString(16).slice(1);
+    
+    // Clamp values to 0-255 range
+    const clampedR = R < 0 ? 0 : R;
+    const clampedG = G < 0 ? 0 : G;
+    const clampedB = B < 0 ? 0 : B;
+    
+    const resultNum = 0x1000000 + clampedR * 0x10000 + clampedG * 0x100 + clampedB;
+    return '#' + resultNum.toString(16).slice(1);
   }
 
   _render() {
